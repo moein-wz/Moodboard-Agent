@@ -1,0 +1,161 @@
+{
+  "name": "Moodboard Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4058ab5f-0236-4c48-9397-0b9835995cae",
+      "name": "When chat message received",
+      "webhookId": "8d521811-8d2f-40e6-b3a2-a9cf9ca40d2d"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Role: You are an expert image generation prompt engineer.\n\nTask:\nYour role is to take a simple input idea (e.g., “bohemian rugs, neutral tones”) and transform it into one detailed, polished prompt for creating a high-quality moodboard.\n\nWhen creating the prompt, follow these guidelines:\n- Highlight the style, colors, and textures implied in the trend.\n- Include close-up material textures, styled interior spaces, and decor elements that complement the rug’s look.\n- Arrange visuals as a clean, inspiration-ready collection that a design team could immediately use for trend insights.\n- Ensure the final output is ready-to-use, simple, and efficient for an image generator."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "67fbeafd-77d4-4190-9091-c714e212cfe6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        224
+      ],
+      "id": "45582761-8329-4654-b1fb-b81a6a8ec75d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KvNqs91MBXZoEBE9",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let inputPrompt = $input.first().json.output;\n\n// 1. Remove line breaks\nlet cleanPrompt = inputPrompt.split(/\\r?\\n/).join(\" \");\n\n// 2. Remove Markdown (** and * bullets)\ncleanPrompt = cleanPrompt.replace(/\\*\\*/g, \"\").replace(/\\*/g, \"\");\n\n// 3. Replace double quotes with single quotes\ncleanPrompt = cleanPrompt.replace(/\"/g, \"'\");\n\n// 4. Build n8n-compatible return\nreturn [\n  {\n    json: {\n      prompt: cleanPrompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "0f4ab775-1271-49a1-88f9-76a837317be7",
+      "name": "Clean Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"inputs\": \"{{ $json.prompt }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        768,
+        0
+      ],
+      "id": "e3c8c4a1-ef2d-4add-a279-5313f5084506",
+      "name": "Hugging Face Image Generator"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Clean Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Prompt": {
+      "main": [
+        [
+          {
+            "node": "Hugging Face Image Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "718fb599-bf5c-4188-abda-761522264ee6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9fcc081a002cf080ce6eb4c34b9724940ca63ca011349416982f6636cd2ab07c"
+  },
+  "id": "gA4EdsrmcKw4BqcU",
+  "tags": []
+}
